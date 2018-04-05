@@ -1,10 +1,11 @@
 # Set flag to correct CS333 project number: 1, 2, ...
 # 0 == original xv6-pdx distribution functionality
-CS333_PROJECT ?= 0
+CS333_PROJECT ?= 1
 CS333_CFLAGS = 
 CS333_UPROGS =
 CS333_TPROGS =
 PRINT_SYSCALLS ?= 0
+# if 1 activate facillity to trace system all if 0 furn off system call tracing
 
 ifeq ($(PRINT_SYSCALLS), 1)
 CS333_CFLAGS += -DPRINT_SYSCALLS
@@ -12,7 +13,7 @@ endif
 
 ifeq ($(CS333_PROJECT), 1)
 CS333_CFLAGS += -DCS333_P1
-CS333_UPROGS += _date
+#CS333_UPROGS += _date  need to turn on after adding date..and delete this comment
 endif
 
 ifeq ($(CS333_PROJECT), 2)
