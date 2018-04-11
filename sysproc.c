@@ -93,3 +93,54 @@ sys_halt(void){
   return 0;
 }
 
+#ifdef CS333_P1
+int
+sys_date (void)
+{
+  struct rtcdate *d;
+  if (argptr (0, (void*)&d, sizeof(struct rtcdate)) < 0)
+return -1;
+cmostime(d);
+return 0;
+}
+#endif
+#ifdef CS333_P2
+uint
+sys_getuid(void){
+return proc -> uid;
+}
+
+uint
+sys_getgid(void){
+return proc -> gid;
+}
+
+uint
+sys_getppid(void){
+if (proc -> parent == 0){
+return proc -> pid;
+}
+return proc -> parent -> pid;
+}
+
+int
+sys_setuid(uint suid){
+if (suid < 0 || suid > 32767){
+    return -1;
+  }
+  proc -> uid = suid;
+  return 1;
+}
+
+int 
+sys_setgid(uint sgid){
+if (sgid < 0 || sgid > 32767){
+    return -1;
+  }
+  proc -> gid = sgid;
+  return 1;
+}
+#endif
+//argptr(int n, char **pp, int size), returns int
+//void cmostime(struct rtcdate *r)
+//TODO:: resto of code needs to be entered

@@ -56,8 +56,8 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   release(&ptable.lock);
-
-  // Allocate kernel stack.
+  
+// Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
     p->state = UNUSED;
     return 0;
@@ -77,6 +77,10 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+
+ #ifdef CS333_P1
+  p->start_ticks = ticks; //Reminder: JENN WROTE THIS
+#endif
 
   return p;
 }
@@ -153,6 +157,10 @@ fork(void)
   np->sz = proc->sz;
   np->parent = proc;
   *np->tf = *proc->tf;
+#ifdef CS333_P2
+  np ->uid = proc -> uid;
+  np -> gid = proc -> gid;
+#endif
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -500,12 +508,20 @@ static char *states[] = {
 // Runs when user types ^P on console.
 // No lock to avoid wedging a stuck machine further.
 void
-procdump(void)
+procdump(void)//TODO: this is where i add in my second stuff (notes on papers)
 {
   int i;
   struct proc *p;
   char *state;
   uint pc[10];
+
+  #ifdef CS333_P1
+  int total;
+  int ms; //milliseconds
+  int s;  //seconds
+  cprintf("PID\tState\tName\tElapsed\tPCs\n");
+  #endif
+
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == UNUSED)
@@ -514,11 +530,18 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    cprintf("%d %s %s", p->pid, state, p->name);
+    cprintf("%d\t%s\t%s", p->pid, state, p->name);
+  #ifdef CS333_P1
+  total = ticks - p-> start_ticks;
+  s = total / 1000;
+  ms = total % 1000;
+  cprintf("\t%d.%d", s, ms);
+#endif
+
     if(p->state == SLEEPING){
       getcallerpcs((uint*)p->context->ebp+2, pc);
       for(i=0; i<10 && pc[i] != 0; i++)
-        cprintf(" %p", pc[i]);
+        cprintf("\t%p", pc[i]);
     }
     cprintf("\n");
   }
