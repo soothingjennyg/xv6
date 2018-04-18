@@ -105,6 +105,7 @@ extern int sys_getgid(void);
 extern int sys_getppid(void);
 extern int sys_setuid(void);
 extern int sys_setgid(void);
+extern int sys_getprocs(void);
 
 static int (*syscalls[])(void) = {//how to call a function pointer *syscalls[]
 [SYS_fork]    sys_fork,
@@ -138,6 +139,7 @@ static int (*syscalls[])(void) = {//how to call a function pointer *syscalls[]
 [SYS_getppid]   sys_getppid,
 [SYS_setuid]    sys_setuid,
 [SYS_setgid]    sys_setgid,
+[SYS_getprocs]  sys_getprocs,
 #endif
 };
 
@@ -170,10 +172,11 @@ syscallnames[] = {
 [SYS_date]    "date",
 #ifdef CS333_P2
 [SYS_getuid]  "getuid",
-[SYS_getgid]  "sys_getgid",
-[SYS_getppid] "sys_getppid",
-[SYS_setuid]  "sys_setuid",
-[SYS_setgid]  "sys_setgid",
+[SYS_getgid]  "getgid",
+[SYS_getppid] "getppid",
+[SYS_setuid]  "setuid",
+[SYS_setgid]  "setgid",
+[SYS_getprocs]"getprocs",
 };
 #endif
 #endif

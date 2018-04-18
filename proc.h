@@ -72,6 +72,8 @@ struct proc {
 #ifdef CS333_P2
 uint uid;                      // user ID
 uint gid;                      // group ID
+uint cpu_ticks_total;          //total elapsed ticks in CPU
+uint cpu_ticks_in;            //ticks when scheduled
 #endif
 };
 

@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "uproc.h"
 
 int
 sys_fork(void)
@@ -99,9 +100,9 @@ sys_date (void)
 {
   struct rtcdate *d;
   if (argptr (0, (void*)&d, sizeof(struct rtcdate)) < 0)
-return -1;
-cmostime(d);
-return 0;
+  return -1;
+  cmostime(d);
+  return 0;
 }
 #endif
 #ifdef CS333_P2
@@ -139,6 +140,20 @@ if (sgid < 0 || sgid > 32767){
   }
   proc -> gid = sgid;
   return 1;
+}
+int 
+sys_getprocs(void){
+   struct uproc *u;
+   int max;
+
+  if(argint(0, &max) < 0)
+    return -1;
+  if (argptr(1, (void*)&u, sizeof(struct uproc)) < 0)
+    return -1;
+  return getprocs(max, u);
+
+//sys_getprocs(uint max, struct uproc* table){
+//use argv and argc to get information off and then pass to getprocs
 }
 #endif
 //argptr(int n, char **pp, int size), returns int

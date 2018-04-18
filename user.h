@@ -1,5 +1,9 @@
+//forward declarations
 struct stat;
 struct rtcdate;
+#ifdef CS333_P2
+struct uproc;
+#endif
 
 // system calls
 #ifdef CS333_P1
@@ -11,6 +15,7 @@ uint getgid(void);    //GID of the current process
 uint getppid(void);   // process ID of the parent process
 int setuid(uint);    // set UID
 int setgid(uint);     //set GID
+int getprocs(int max, struct uproc* table);
 #endif
 int fork(void);
 int exit(void) __attribute__((noreturn));

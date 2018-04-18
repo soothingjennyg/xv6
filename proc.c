@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "uproc.h"
 
 struct {
   struct spinlock lock;
@@ -20,6 +21,19 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+#if defined(CS333_P3P4)
+static void procdumpP3P4(struct proc * p, char *state);
+#elif defined(CS333_P2)
+static void procdumpP2(struct proc * p, char *state);
+#elif defined(CS333_P1)
+static void procdumpP1(struct proc *p, char *state);
+#else
+    cprintf("didn't catch any of the statemetns\n");
+#endif
+
+#ifdef CS333_P2
+int getprocs(uint max, struct uproc* table);
+#endif
 
 #ifdef CS333_P3P4
 static void initProcessLists(void);
@@ -82,6 +96,10 @@ found:
   p->start_ticks = ticks; //Reminder: JENN WROTE THIS
 #endif
 
+#ifdef CS333_P2
+p -> cpu_ticks_total = 0;          //total elapsed ticks in CPU
+p -> cpu_ticks_in = 0;            //ticks when scheduled
+#endif
   return p;
 }
 
@@ -321,6 +339,9 @@ scheduler(void)
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
+#ifdef CS333_P2
+p -> cpu_ticks_in= ticks;
+#endif
       swtch(&cpu->scheduler, proc->context);
       switchkvm();
 
@@ -351,6 +372,9 @@ void
 sched(void)
 {
   int intena;
+#ifdef CS333_P2
+  //struct proc *p;//i know this is wrong mkay
+#endif
 
   if(!holding(&ptable.lock))
     panic("sched ptable.lock");
@@ -363,6 +387,10 @@ sched(void)
   intena = cpu->intena;
   swtch(&proc->context, cpu->scheduler);
   cpu->intena = intena;
+#ifdef CS333_P2
+proc -> cpu_ticks_total += ticks - proc -> cpu_ticks_in;
+#endif
+
 }
 
 // Give up the CPU for one scheduling round.
@@ -508,6 +536,129 @@ static char *states[] = {
 // Runs when user types ^P on console.
 // No lock to avoid wedging a stuck machine further.
 void
+procdump(void)    //This was copied from Mark Morrissey's email
+{
+  int i;
+  struct proc *p;
+  char *state;
+  uint pc[10];
+
+#if defined(CS333_P3P4)
+#define HEADER "\nPID\tName         UID\tGID\tPPID\tPrio\tElapsed\tCPU\tState\tSize\t PCs\n"
+#elif defined(CS333_P2)
+#define HEADER "\nPID\tName         UID\tGID\tPPID\tElapsed\tCPU\tState\tSize\t PCs\n"
+#elif defined(CS333_P1)
+#define HEADER "\nPID\tName         Elapsed\tState\tSize\t PCs\n"
+#else
+#define HEADER ""
+#endif
+
+  cprintf(HEADER);
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == UNUSED)
+      continue;
+    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+      state = states[p->state];
+    else
+      state = "???";
+
+#if defined(CS333_P3P4)
+    procdumpP3P4(p, state);
+#elif defined(CS333_P2)
+    procdumpP2(p, state);
+#elif defined(CS333_P1)
+    procdumpP1(p, state);
+#else
+    cprintf("%d %s %s", p->pid, state, p->name);
+#endif
+
+    if(p->state == SLEEPING){
+      getcallerpcs((uint*)p->context->ebp+2, pc);
+      for(i=0; i<10 && pc[i] != 0; i++)
+        cprintf(" %p", pc[i]);
+    }
+
+    cprintf("\n");
+  }
+}
+
+#if defined(CS333_P3P4)
+static void
+procdumpP3P4(struct proc * p, char *state){  }
+#elif defined(CS333_P2)
+static void
+procdumpP2(struct proc * p, char *state){  }
+#elif defined(CS333_P1)
+static void
+procdumpP1(struct proc * p, char *state){
+  //int i;
+  //struct proc *p;
+  //char *state;
+  //uint pc[10];
+
+  int total;
+  int ms; //milliseconds
+  int s;  //seconds
+  cprintf("PID\tState\tName\tElapsed\tPCs\n");
+
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == UNUSED)
+      continue;
+    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+      state = states[p->state];
+    else
+      state = "???";
+    cprintf("%d\t%s\t%s", p->pid, state, p->name);
+  total = ticks - p-> start_ticks;
+  s = total / 1000;
+  ms = total % 1000;
+  cprintf("\t%d.%d", s, ms);
+  }
+}
+//    procdumpP1(p, state);
+#else
+    cprintf("didn't hit any procdump functions \n");
+#endif
+#ifdef CS333_P2
+int 
+getprocs(uint max, struct uproc* table){
+struct proc *p;
+int i = 0;
+
+for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == UNUSED)
+      continue;
+
+    table[i].pid = p -> pid;
+    table[i].uid = p -> uid;
+    table[i].gid = p -> gid;
+    if (p-> parent != 0){
+    table[i].ppid = p ->parent->pid;
+    }
+    else{
+    table[i].ppid = 0; //its the parent
+    }
+    table[i].elapsed_ticks = ticks - (p -> start_ticks);
+    table[i].CPU_total_ticks = p -> cpu_ticks_total;
+    
+    strncpy(table[i].state, states[p -> state], STRMAX - 1);
+    table[i].size = p -> sz;
+    strncpy(table[i].name, p -> name, STRMAX - 1);
+    i++;
+   if (i > max){
+  //return -1;//TODO this or a break? 
+   break;//TODO: is this the right place to do this?  should i send an error saying it's larger than size?//or allocate more memory here?
+  }
+}
+return i;
+}
+#endif
+
+
+/*
+void
 procdump(void)//TODO: this is where i add in my second stuff (notes on papers)
 {
   int i;
@@ -531,7 +682,7 @@ procdump(void)//TODO: this is where i add in my second stuff (notes on papers)
     else
       state = "???";
     cprintf("%d\t%s\t%s", p->pid, state, p->name);
-  #ifdef CS333_P1
+#ifdef CS333_P1
   total = ticks - p-> start_ticks;
   s = total / 1000;
   ms = total % 1000;
@@ -546,7 +697,7 @@ procdump(void)//TODO: this is where i add in my second stuff (notes on papers)
     cprintf("\n");
   }
 }
-
+*/
 
 #ifdef CS333_P3P4
 static int

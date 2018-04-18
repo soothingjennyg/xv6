@@ -8,6 +8,7 @@ struct rtcdate;
 struct spinlock;
 struct stat;
 struct superblock;
+struct uproc;//need to add ifdefs?
 
 // bio.c
 void            binit(void);
@@ -118,6 +119,8 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+//int             getprocs(uint max, void * table);
+int             getprocs(uint max, struct uproc* table);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
