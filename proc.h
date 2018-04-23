@@ -76,7 +76,8 @@ uint cpu_ticks_total;          //total elapsed ticks in CPU
 uint cpu_ticks_in;            //ticks when scheduled
 #endif
 };
-
+#define UID 1
+#define GID 1
 // Process memory is laid out contiguously, low addresses first:
 //   text
 //   original data and bss

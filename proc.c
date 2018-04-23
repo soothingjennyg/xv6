@@ -28,7 +28,6 @@ static void procdumpP2(struct proc * p, char *state);
 #elif defined(CS333_P1)
 static void procdumpP1(struct proc *p, char *state);
 #else
-    cprintf("didn't catch any of the statemetns\n");
 #endif
 
 #ifdef CS333_P2
@@ -126,6 +125,12 @@ userinit(void)
   p->tf->esp = PGSIZE;
   p->tf->eip = 0;  // beginning of initcode.S
 
+#ifdef CS333_P2
+p -> uid = UID;
+p -> gid = GID;
+p -> pid = 1;
+p -> parent = p;
+#endif
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
@@ -340,7 +345,7 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 #ifdef CS333_P2
-p -> cpu_ticks_in= ticks;
+      p -> cpu_ticks_in= ticks;
 #endif
       swtch(&cpu->scheduler, proc->context);
       switchkvm();
@@ -385,12 +390,11 @@ sched(void)
   if(readeflags()&FL_IF)
     panic("sched interruptible");
   intena = cpu->intena;
+#ifdef CS333_P2
+  proc -> cpu_ticks_total += ticks - proc -> cpu_ticks_in;
+#endif
   swtch(&proc->context, cpu->scheduler);
   cpu->intena = intena;
-#ifdef CS333_P2
-proc -> cpu_ticks_total += ticks - proc -> cpu_ticks_in;
-#endif
-
 }
 
 // Give up the CPU for one scheduling round.
@@ -578,7 +582,6 @@ procdump(void)    //This was copied from Mark Morrissey's email
       for(i=0; i<10 && pc[i] != 0; i++)
         cprintf(" %p", pc[i]);
     }
-
     cprintf("\n");
   }
 }
@@ -586,9 +589,44 @@ procdump(void)    //This was copied from Mark Morrissey's email
 #if defined(CS333_P3P4)
 static void
 procdumpP3P4(struct proc * p, char *state){  }
+
 #elif defined(CS333_P2)
 static void
-procdumpP2(struct proc * p, char *state){  }
+procdumpP2(struct proc * p, char *state){ 
+  int total;
+  int ms; //milliseconds
+  int s;  //seconds
+  cprintf("%d\t%s\t\t%d\t%d\t", p->pid, p->name, p->uid, p->gid);
+  cprintf("%d\t", p->parent->pid);
+  total = ticks - p-> start_ticks;
+  s = total / 1000;
+  ms = total % 1000;
+  if (ms < 10){
+  cprintf("%d.00%d\t", s, ms);
+  }
+  else if (ms < 100){
+  cprintf("%d.0%d\t", s, ms);
+  }
+  else{
+  cprintf("%d.%d\t", s, ms);
+  }
+//CPU ticks total
+  total = p-> cpu_ticks_total;
+  s = total / 1000;
+  ms = total % 1000;
+  if (ms < 10){
+  cprintf("%d.00%d\t", s, ms);
+  }
+  else if (ms < 100){
+  cprintf("%d.0%d\t", s, ms);
+  }
+  else{
+  cprintf("%d.%d\t", s, ms);
+  }
+  cprintf("%s\t", state);
+  cprintf("%d\t", p->sz);
+}
+
 #elif defined(CS333_P1)
 static void
 procdumpP1(struct proc * p, char *state){
@@ -602,56 +640,46 @@ procdumpP1(struct proc * p, char *state){
   int s;  //seconds
   cprintf("PID\tState\tName\tElapsed\tPCs\n");
 
-
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->state == UNUSED)
-      continue;
-    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
       state = states[p->state];
-    else
-      state = "???";
-    cprintf("%d\t%s\t%s", p->pid, state, p->name);
+    cprintf("%d\t%s\t\t%s", p->pid, state, p->name);
   total = ticks - p-> start_ticks;
   s = total / 1000;
   ms = total % 1000;
   cprintf("\t%d.%d", s, ms);
-  }
 }
 //    procdumpP1(p, state);
+
 #else
-    cprintf("didn't hit any procdump functions \n");
+    //cprintf("didn't hit any procdump functions \n");
 #endif
+
 #ifdef CS333_P2
 int 
 getprocs(uint max, struct uproc* table){
 struct proc *p;
 int i = 0;
 
+  acquire(&ptable.lock);
 for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->state == UNUSED)
+    if(p->state == UNUSED || p->state == EMBRYO)
       continue;
 
     table[i].pid = p -> pid;
     table[i].uid = p -> uid;
     table[i].gid = p -> gid;
-    if (p-> parent != 0){
     table[i].ppid = p ->parent->pid;
-    }
-    else{
-    table[i].ppid = 0; //its the parent
-    }
     table[i].elapsed_ticks = ticks - (p -> start_ticks);
     table[i].CPU_total_ticks = p -> cpu_ticks_total;
-    
-    strncpy(table[i].state, states[p -> state], STRMAX - 1);
+   //cprintf("total ticks %d\n", table[i].CPU_total_ticks); 
+    safestrcpy(table[i].state, states[p -> state], STRMAX);
     table[i].size = p -> sz;
-    strncpy(table[i].name, p -> name, STRMAX - 1);
+    safestrcpy(table[i].name, p -> name, STRMAX);
     i++;
-   if (i > max){
-  //return -1;//TODO this or a break? 
-   break;//TODO: is this the right place to do this?  should i send an error saying it's larger than size?//or allocate more memory here?
+   if (i >= max){
+   break;
   }
 }
+  release(&ptable.lock);
 return i;
 }
 #endif

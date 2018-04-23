@@ -86,7 +86,7 @@ sys_uptime(void)
   return xticks;
 }
 
-//Turn of the computer
+//Turn off the computer
 int
 sys_halt(void){
   cprintf("Shutting down ...\n");
@@ -118,15 +118,18 @@ return proc -> gid;
 
 uint
 sys_getppid(void){
-if (proc -> parent == 0){
+if (proc -> parent == 0){//if proc parent is 0, it has no parent
 return proc -> pid;
 }
 return proc -> parent -> pid;
 }
 
 int
-sys_setuid(uint suid){
-if (suid < 0 || suid > 32767){
+sys_setuid(void){
+uint suid;
+  if(argint(0,(int*)&suid) < 0)
+    return -1;
+if ((suid < 0) || (suid > 32767)){
     return -1;
   }
   proc -> uid = suid;
@@ -134,7 +137,10 @@ if (suid < 0 || suid > 32767){
 }
 
 int 
-sys_setgid(uint sgid){
+sys_setgid(void){
+uint sgid;
+  if(argint(0, (int*)&sgid) < 0)
+    return -1;
 if (sgid < 0 || sgid > 32767){
     return -1;
   }
@@ -148,7 +154,7 @@ sys_getprocs(void){
 
   if(argint(0, &max) < 0)
     return -1;
-  if (argptr(1, (void*)&u, sizeof(struct uproc)) < 0)
+  if (argptr(1, (void*)&u, max*sizeof(struct uproc)) < 0)
     return -1;
   return getprocs(max, u);
 
