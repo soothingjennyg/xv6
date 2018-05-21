@@ -17,6 +17,9 @@ int setuid(uint);    // set UID
 int setgid(uint);     //set GID
 int getprocs(int max, struct uproc* table);
 #endif
+#ifdef CS333_P3P4
+int setpriority(int pid, int priority);
+#endif
 int fork(void);
 int exit(void) __attribute__((noreturn));
 int wait(void);

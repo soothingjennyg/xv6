@@ -96,7 +96,7 @@ sys_halt(void){
 
 #ifdef CS333_P1
 int
-sys_date (void)
+sys_date(void)
 {
   struct rtcdate *d;
   if (argptr (0, (void*)&d, sizeof(struct rtcdate)) < 0)
@@ -105,6 +105,26 @@ sys_date (void)
   return 0;
 }
 #endif
+
+#ifdef CS333_P3P4
+int 
+sys_setpriority(void){
+  int pid;
+  int priority;
+  if(argint(0,&pid)<0){
+    return -1;
+  }
+  if(argint(1,&priority)<0){
+    return -1;
+  }
+  if(priority < 0 || priority > MAXPRIO){
+    cprintf("setpriority in sysproc.c had value greater/less than expected, out of range");
+    return -1;
+  }
+  return setpriority(pid, priority);
+}
+#endif
+
 #ifdef CS333_P2
 uint
 sys_getuid(void){

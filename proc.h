@@ -53,6 +53,9 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
+#ifdef CS333_P3P4
+struct proc *next; //CHANGE3 The next pointer for the state list. Since at top of structure, points to whole structure and not just next.
+#endif
   uint sz;                     // Size of process memory (bytes)
   pde_t* pgdir;                // Page table
   char *kstack;                // Bottom of kernel stack for this process
@@ -70,10 +73,14 @@ struct proc {
   uint start_ticks;            // ticks for process start
 #endif
 #ifdef CS333_P2
-uint uid;                      // user ID
-uint gid;                      // group ID
-uint cpu_ticks_total;          //total elapsed ticks in CPU
-uint cpu_ticks_in;            //ticks when scheduled
+  uint uid;                      // user ID
+  uint gid;                      // group ID
+  uint cpu_ticks_total;          //total elapsed ticks in CPU
+  uint cpu_ticks_in;            //ticks when scheduled
+#endif
+#ifdef CS333_P3P4
+int prio;
+int budget;
 #endif
 };
 #define UID 1
