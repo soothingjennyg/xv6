@@ -5,7 +5,7 @@
 #include "user.h"
 
 // Must match NPRIO in proc.h
-#define PrioCount 7
+#define PrioCount 8
 #define numChildren 10
 
 void
@@ -35,6 +35,8 @@ countForever(int i)
 	printf(1, "setpriority failed. file %s at %d\n", __FILE__, __LINE__);
 	exit();
       }
+    } else if((count & (0xFFFF)) == 0) {
+      rc = setpriority(j, p);
     }
   }
 }

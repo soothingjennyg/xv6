@@ -509,8 +509,8 @@ wait(void)
         continue;
       havekids = 1;
     }
-      if(p->parent != proc)
-        continue;
+      //if(p->parent != proc)
+      //  continue;
   }
     for(p = ptable.pLists.sleep; p != 0; p = p->next){//while p!= 0, traverse
       if(p->parent != proc)
@@ -656,6 +656,9 @@ scheduler(void)
         dumpProcLists();
         cprintf("pid %d\n",p->pid);
         panic("the process was not removed from ready in the scheduler");
+      }
+      if (p->prio != i){
+        panic("NOT ON RIGHT PRIO IN SCHEDULER!");
       }
       p->state = RUNNING;
       stateListAdd(&ptable.pLists.running, &ptable.pLists.runningTail, p);
@@ -895,14 +898,15 @@ setpriority(int pid, int prio){
   for(p=ptable.pLists.ready[i]; i<=MAXPRIO;++i){
   for(; p != 0; p = p->next){//while p!= 0, traverse
     if(p->pid == pid){
-      p->prio = prio;
       p->budget = BUDGET;
-//TODO:move onto the correct ready list
-      rc = stateListRemove(&ptable.pLists.ready[i], &ptable.pLists.readyTail[i], p);
-      if (rc !=0){
-        panic("didn't remove from ready list in set priority");
+      if(p->prio != prio){
+        p->prio = prio;
+        rc = stateListRemove(&ptable.pLists.ready[i], &ptable.pLists.readyTail[i], p);
+        if (rc !=0){
+          panic("didn't remove from ready list in set priority");
+        }
+        stateListAdd(&ptable.pLists.ready[p->prio], &ptable.pLists.readyTail[p->prio], p);
       }
-      stateListAdd(&ptable.pLists.ready[p->prio], &ptable.pLists.readyTail[p->prio], p);
       release(&ptable.lock);
       return 0;
     }
@@ -967,14 +971,16 @@ kill(int pid)//TODO NEED TO GO THROUGH THIS AGAIN, only checked the sleep proces
       return 0;
     }
   }
-  for(p=ptable.pLists.ready[i]; i<=MAXPRIO;++i){
-  for(; p != 0; p = p->next){//while p!= 0, traverse
-    if(p->pid == pid){
-      p->killed = 1;
-      release(&ptable.lock);
-      return 0;
+  for(i=0;i<=MAXPRIO;i++){
+    p=ptable.pLists.ready[i];
+    while(p){
+      if(p->pid == pid){
+        p->killed = 1;
+        release(&ptable.lock);
+        return 0;
+      }
+      p = p->next;
     }
-  }
   }
   for(p = ptable.pLists.zombie; p != 0; p = p->next){//while p!= 0, traverse
     if(p->pid == pid){
@@ -1001,15 +1007,12 @@ kill(int pid)//TODO NEED TO GO THROUGH THIS AGAIN, only checked the sleep proces
       if (rc == -1){
         panic("sleepy process not removed from list!");
       }
-      rc = stateListAdd(&ptable.pLists.ready[0], &ptable.pLists.readyTail[0], p);//set to zombie?
+      rc = stateListAdd(&ptable.pLists.ready[p->prio], &ptable.pLists.readyTail[p->prio], p);//set to zombie?
       p->state = RUNNABLE;
       if (rc == -1){
         rc = stateListRemove(&ptable.pLists.sleep, &ptable.pLists.sleepTail, p);
         cprintf("so..the process you wanted to add to ready wouldn't add so going to put it on the sleep process again..");
         p->state = SLEEPING;
-        if (rc == -1){
-          panic("sleepy process was removed but not added to ready process and not put back on sleep list. it's getting real!");
-        }
       }
       release(&ptable.lock);
       return 0;
@@ -1043,7 +1046,7 @@ procdump(void)    //This was copied from Mark Morrissey's email
 
 #if defined(CS333_P3P4)
 //#define HEADER "\nPID\tName\tUID\tGID\tPPID\tElapsed\tCPU\tState\tSize\t PCs\n"
-#define HEADER "\nPID\tName         UID\tGID\tPPID\tPrio\tElapsed\tCPU\tState\tSize\t PCs\n"
+#define HEADER "\nPID\tName\tUID\tGID\tPPID\tPrio\tElapsed\tCPU\tState\tSize\t PCs\n"
 #elif defined(CS333_P2)
 #define HEADER "\nPID\tName         UID\tGID\tPPID\tElapsed\tCPU\tState\tSize\t PCs\n"
 #elif defined(CS333_P1)
@@ -1321,32 +1324,31 @@ procreadyelevate(void){
   for (i = 0; i<=MAXPRIO; ++i){
   //cprintf("%d: ",i);
     p =ptable.pLists.ready[i]; 
-  while(p!= 0){
-    //cprintf(" -> %u ", p->pid);
-    //cprintf(" %d, %d %s ", p->pid, p->budget, (p->next) ? "->" : "");
-    p->budget = BUDGET;
-    if(i>0){
-    p->prio--;
-    temp = p->next;
-    stateListRemove(&ptable.pLists.ready[i], &ptable.pLists.readyTail[i], p);//TODO write some check statememtn bla blahs
-    stateListAdd(&ptable.pLists.ready[p->prio], &ptable.pLists.readyTail[p->prio], p);
-    p = temp;
+    while(p!= 0){
+      //cprintf(" -> %u ", p->pid);
+     // cprintf(" %d, %d %s ", p->pid, p->budget, (p->next) ? "->" : "");
+      temp = p->next;
+      p->budget = BUDGET;
+      if(i>0){
+        p->prio--;
+        stateListRemove(&ptable.pLists.ready[i], &ptable.pLists.readyTail[i], p);//TODO write some check statememtn bla blahs
+        stateListAdd(&ptable.pLists.ready[p->prio], &ptable.pLists.readyTail[p->prio], p);
+      }
+      p = temp;
     }
-  }
   }
   p=ptable.pLists.sleep;
   while(p!=0){
     if(p->prio > 0){
-    --p->prio;
+    p->prio--;
     }
     p->budget = BUDGET;
     p = p->next;
   }
   p=ptable.pLists.running;
   while(p!=0){
-    cprintf("promote running %d pri: %d",p->pid,p->prio);
     if(p->prio > 0){
-    --p->prio;
+    p->prio--;
     }
     p->budget = BUDGET;
     p = p->next;

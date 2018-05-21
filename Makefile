@@ -1,6 +1,6 @@
 # Set flag to correct CS333 project number: 1, 2, ...
 # 0 == original xv6-pdx distribution functionality
-CS333_PROJECT ?= 3
+CS333_PROJECT ?= 4
 CS333_CFLAGS = 
 CS333_UPROGS =
 CS333_TPROGS =
@@ -31,7 +31,7 @@ CS333_CFLAGS += -DTEST_ROUNDROBIN
 #CS333_CFLAGS += -DTEST_KILL
 #CS333_CFLAGS += -DTEST_ZOMBIE
 CS333_UPROGS += _date _time _ps
-CS333_TPROGS += _p2testsuite _testuidgid _p4test
+CS333_TPROGS += _p2testsuite _testuidgid _p4test _testSched
 endif
 
 ifeq ($(CS333_PROJECT), 5)

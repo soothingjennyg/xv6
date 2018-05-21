@@ -12,7 +12,7 @@
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
 // #define FSSIZE       1000  // size of file system in blocks
 #define FSSIZE       2000  // size of file system in blocks  // CS333 requires a larger FS.
-#define MAXPRIO      0//number of priority queue structs
-#define TICKS_TO_PROMOTE 100
-#define BUDGET 300000
+#define MAXPRIO      6//number of priority queue structs
+#define TICKS_TO_PROMOTE 300
+#define BUDGET 150
 
